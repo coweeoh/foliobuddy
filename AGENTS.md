@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Portfolio analytics (look-through, correlation) live as pure TS in src/lib/folio and run in the browser; the brief's FastAPI backend is replaced since the stack is TanStack Start — keeps simulations instant and testable.
