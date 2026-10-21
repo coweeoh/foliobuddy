@@ -104,7 +104,7 @@ function PortfolioStep({ positions, setPositions, w, onNext }: { positions: Posi
               <div>
                 <input list="tickers" value={p.ticker} onChange={(e) => update(i, { ticker: e.target.value.toUpperCase().trim() })}
                   className="num w-full rounded-md border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring" />
-                <span className={`mt-1 block text-xs ${name ? "text-muted-foreground" : "text-destructive"}`}>{name ?? (p.ticker ? "Not in dataset — treated as unclassified" : " ")}</span>
+                <span className={`mt-1 block text-xs ${name ? "text-muted-foreground" : "text-destructive"}`}>{name ?? (p.ticker ? "Not in dataset — counted as a direct holding" : " ")}</span>
               </div>
               <input type="number" min={0} value={p.amount || ""} onChange={(e) => update(i, { amount: Number(e.target.value) })}
                 className="num w-full self-start rounded-md border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring" />
@@ -132,22 +132,23 @@ function SourceBar({ sources, total, colorOf }: { sources: Record<string, number
 
 function ExposureStep({ w, colorOf }: { w: Record<string, number>; colorOf: (t: string) => string }) {
   const { companies, sectors, unknown } = useMemo(() => lookThrough(w), [w]);
-  const top = companies.slice(0, 12);
-  const max = top[0]?.weight ?? 1;
+  const [showAll, setShowAll] = useState(false);
+  const shown = showAll ? companies : companies.slice(0, 12);
+  const max = companies[0]?.weight ?? 1;
   const overlapped = companies.filter((c) => Object.keys(c.sources).length > 1);
   return (
     <>
       <div className="mb-10 grid gap-4 sm:grid-cols-3">
         <Stat label="Top company" value={top[0] ? `${top[0].ticker} ${pct(top[0].weight)}` : "—"} />
-        <Stat label="Top 5 companies combined" value={pct(top.slice(0, 5).reduce((s, c) => s + c.weight, 0))} />
-        <Stat label="Held through 2+ positions" value={`${overlapped.length} companies`} />
+      <Stat label="Top 5 companies combined" value={pct(companies.slice(0, 5).reduce((s, c) => s + c.weight, 0))} />
+      <Stat label="Held through 2+ positions" value={`${overlapped.length} companies`} />
       </div>
       <div className="mb-6 flex flex-wrap gap-4 text-xs">
         {Object.keys(w).map((t) => <span key={t} className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm" style={{ background: colorOf(t) }} />{t}</span>)}
       </div>
       <Section title="Your real company exposure" sub="Each bar shows the share of your whole portfolio in that company, coloured by which of your holdings it comes from.">
         <div className="space-y-3">
-          {top.map((c) => (
+          {shown.map((c) => (
             <div key={c.ticker} className="grid grid-cols-[9rem_1fr_4.5rem] items-center gap-4">
               <span className="truncate text-sm"><b className="num font-medium">{c.ticker}</b> <span className="text-muted-foreground">{c.name}</span></span>
               <div style={{ width: `${(c.weight / max) * 100}%` }}><SourceBar sources={c.sources} total={c.weight} colorOf={colorOf} /></div>
@@ -155,6 +156,11 @@ function ExposureStep({ w, colorOf }: { w: Record<string, number>; colorOf: (t: 
             </div>
           ))}
         </div>
+        {companies.length > 12 && (
+          <button onClick={() => setShowAll(!showAll)} className="mt-4 rounded-md border border-border px-4 py-2 text-sm hover:bg-secondary">
+            {showAll ? "Show top 12 only" : `Show all ${companies.length} companies`}
+          </button>
+        )}
       </Section>
       <Section title="Sector allocation" sub="Combined across every fund's underlying holdings.">
         <div className="h-80 rounded-lg border border-border bg-card p-4">
@@ -168,7 +174,7 @@ function ExposureStep({ w, colorOf }: { w: Record<string, number>; colorOf: (t: 
             </BarChart>
           </ResponsiveContainer>
         </div>
-        {unknown.length > 0 && <p className="mt-3 text-sm text-destructive">Not in our dataset, counted as unclassified: {unknown.join(", ")}</p>}
+        {unknown.length > 0 && <p className="mt-3 text-sm text-destructive">Typed tickers not in our dataset are treated as direct holdings (sector unknown): {unknown.join(", ")}</p>}
       </Section>
     </>
   );
