@@ -88,17 +88,17 @@ const factorSeries = (() => {
 export function dailyReturns(ticker: string): number[] {
   const [m, g, v, idio] = factorsFor(ticker);
   const r = rng(hash(ticker));
-  return factorSeries.map(([fm, fg, fv]) => m * fm + g * fg + v * fv + gaussian(r) * idio);
+  return factorSeries.map(([fm, fg, fv]) => m * fm! + g * fg! + v * fv! + gaussian(r) * idio);
 }
 
 export function pearson(a: number[], b: number[]): number {
   const n = Math.min(a.length, b.length);
   let ma = 0, mb = 0;
-  for (let i = 0; i < n; i++) { ma += a[i]; mb += b[i]; }
+  for (let i = 0; i < n; i++) { ma += a[i]!; mb += b[i]!; }
   ma /= n; mb /= n;
   let num = 0, da = 0, db = 0;
   for (let i = 0; i < n; i++) {
-    const x = a[i] - ma, y = b[i] - mb;
+    const x = a[i]! - ma, y = b[i]! - mb;
     num += x * y; da += x * x; db += y * y;
   }
   return da && db ? num / Math.sqrt(da * db) : 0;
@@ -106,5 +106,5 @@ export function pearson(a: number[], b: number[]): number {
 
 export function correlationMatrix(tickers: string[]) {
   const series = tickers.map(dailyReturns);
-  return tickers.map((_, i) => tickers.map((_, j) => (i === j ? 1 : pearson(series[i], series[j]))));
+  return tickers.map((_, i) => tickers.map((_, j) => (i === j ? 1 : pearson(series[i]!, series[j]!))));
 }

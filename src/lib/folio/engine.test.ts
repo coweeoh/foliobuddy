@@ -11,7 +11,7 @@ describe("FolioBuddy engine", () => {
     const { companies } = lookThrough({ SPY: 0.5, QQQ: 0.4, NVDA: 0.1 });
     const nvda = companies.find((c) => c.ticker === "NVDA")!;
     expect(nvda.weight).toBeCloseTo(0.5 * 0.07 + 0.4 * 0.095 + 0.1, 10);
-    expect(nvda.sources.QQQ).toBeCloseTo(0.038, 10);
+    expect(nvda.sources["QQQ"]).toBeCloseTo(0.038, 10);
   });
 
   it("sector weights sum to 100%", () => {
