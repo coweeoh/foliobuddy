@@ -132,8 +132,9 @@ function SourceBar({ sources, total, colorOf }: { sources: Record<string, number
 
 function ExposureStep({ w, colorOf }: { w: Record<string, number>; colorOf: (t: string) => string }) {
   const { companies, sectors, unknown } = useMemo(() => lookThrough(w), [w]);
-  const top = companies.slice(0, 12);
-  const max = top[0]?.weight ?? 1;
+  const [showAll, setShowAll] = useState(false);
+  const shown = showAll ? companies : companies.slice(0, 12);
+  const max = companies[0]?.weight ?? 1;
   const overlapped = companies.filter((c) => Object.keys(c.sources).length > 1);
   return (
     <>
