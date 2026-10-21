@@ -35,7 +35,7 @@ function Index() {
   const [step, setStep] = useState<Step>("Portfolio");
   const w = useMemo(() => weights(positions), [positions]);
   const tickers = Object.keys(w);
-  const colorOf = (t: string) => PALETTE[Math.max(0, tickers.indexOf(t)) % PALETTE.length];
+  const colorOf = (t: string) => PALETTE[Math.max(0, tickers.indexOf(t)) % PALETTE.length]!;
 
   return (
     <div className="min-h-screen">
@@ -108,7 +108,7 @@ function PortfolioStep({ positions, setPositions, w, onNext }: { positions: Posi
               </div>
               <input type="number" min={0} value={p.amount || ""} onChange={(e) => update(i, { amount: Number(e.target.value) })}
                 className="num w-full self-start rounded-md border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring" />
-              <span className="num self-start pt-2 text-right">{w[p.ticker] ? pct(w[p.ticker]) : "—"}</span>
+              <span className="num self-start pt-2 text-right">{w[p.ticker] ? pct(w[p.ticker]!) : "—"}</span>
               <button aria-label="Remove" onClick={() => setPositions(positions.filter((_, j) => j !== i))} className="self-start pt-2 text-muted-foreground hover:text-destructive">✕</button>
             </div>
           );
@@ -185,7 +185,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 function CorrelationStep({ tickers }: { tickers: string[] }) {
   const m = useMemo(() => correlationMatrix(tickers), [tickers]);
-  const pairs = tickers.flatMap((a, i) => tickers.slice(i + 1).map((b, k) => ({ a, b, r: m[i][i + 1 + k] }))).sort((x, y) => y.r - x.r);
+  const pairs = tickers.flatMap((a, i) => tickers.slice(i + 1).map((b, k) => ({ a, b, r: m[i]![i + 1 + k]! }))).sort((x, y) => y.r - x.r);
   return (
     <Section title="Do your holdings move together?" sub="Pearson correlation of daily returns. Near 1 means they rise and fall together — less diversification than it looks.">
       <div className="overflow-x-auto">
@@ -195,7 +195,7 @@ function CorrelationStep({ tickers }: { tickers: string[] }) {
             {tickers.map((t, i) => (
               <tr key={t}>
                 <th className="pr-2 text-right font-medium">{t}</th>
-                {m[i].map((r, j) => (
+                {m[i]!.map((r, j) => (
                   <td key={j} className="h-14 w-16 rounded-md text-center"
                     style={{ background: `color-mix(in oklab, ${r >= 0 ? "var(--chart-2)" : "var(--chart-3)"} ${Math.abs(r) * 90}%, var(--card))` }}>
                     {r.toFixed(2)}
@@ -206,7 +206,7 @@ function CorrelationStep({ tickers }: { tickers: string[] }) {
           </tbody>
         </table>
       </div>
-      {pairs[0] && (
+      {pairs[0] && (() => { const p0 = pairs[0]!; return (
         <p className="mt-6 max-w-2xl">
           Your most similar pair is <b>{pairs[0].a}</b> and <b>{pairs[0].b}</b> at <span className="num">{pairs[0].r.toFixed(2)}</span>
           {pairs[0].r > 0.8 ? " — historically they behave almost like the same investment." : "."}
@@ -247,7 +247,7 @@ function SimulateStep({ w }: { w: Record<string, number> }) {
           {extra.length > 0 && (
             <select value="" onChange={(e) => e.target.value && setSim({ ...sim, [e.target.value]: 10 })} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
               <option value="">+ Try adding an ETF…</option>
-              {extra.map((t) => <option key={t} value={t}>{t} — {ETFS[t].name}</option>)}
+              {extra.map((t) => <option key={t} value={t}>{t} — {ETFS[t]!.name}</option>)}
             </select>
           )}
         </div>
