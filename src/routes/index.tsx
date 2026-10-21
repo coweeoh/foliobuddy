@@ -186,6 +186,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 function CorrelationStep({ tickers }: { tickers: string[] }) {
   const m = useMemo(() => correlationMatrix(tickers), [tickers]);
   const pairs = tickers.flatMap((a, i) => tickers.slice(i + 1).map((b, k) => ({ a, b, r: m[i]![i + 1 + k]! }))).sort((x, y) => y.r - x.r);
+  const top = pairs[0];
   return (
     <Section title="Do your holdings move together?" sub="Pearson correlation of daily returns. Near 1 means they rise and fall together — less diversification than it looks.">
       <div className="overflow-x-auto">
@@ -206,10 +207,10 @@ function CorrelationStep({ tickers }: { tickers: string[] }) {
           </tbody>
         </table>
       </div>
-      {pairs[0] && (() => { const p0 = pairs[0]!; return (
+      {top && (
         <p className="mt-6 max-w-2xl">
-          Your most similar pair is <b>{pairs[0].a}</b> and <b>{pairs[0].b}</b> at <span className="num">{pairs[0].r.toFixed(2)}</span>
-          {pairs[0].r > 0.8 ? " — historically they behave almost like the same investment." : "."}
+          Your most similar pair is <b>{top.a}</b> and <b>{top.b}</b> at <span className="num">{top.r.toFixed(2)}</span>
+          {top.r > 0.8 ? " — historically they behave almost like the same investment." : "."}
         </p>
       )}
     </Section>
