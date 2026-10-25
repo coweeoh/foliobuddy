@@ -139,7 +139,7 @@ function ExposureStep({ w, colorOf }: { w: Record<string, number>; colorOf: (t: 
   return (
     <>
       <div className="mb-10 grid gap-4 sm:grid-cols-3">
-        <Stat label="Top company" value={top[0] ? `${top[0].ticker} ${pct(top[0].weight)}` : "—"} />
+        <Stat label="Top company" value={companies[0] ? `${companies[0].ticker} ${pct(companies[0].weight)}` : "—"} />
       <Stat label="Top 5 companies combined" value={pct(companies.slice(0, 5).reduce((s, c) => s + c.weight, 0))} />
       <Stat label="Held through 2+ positions" value={`${overlapped.length} companies`} />
       </div>

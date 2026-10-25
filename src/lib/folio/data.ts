@@ -170,6 +170,11 @@ export const ETFS: Record<string, Fund> = {
     holdings: { NVDA: 0.062, MSFT: 0.058, AAPL: 0.055, AMZN: 0.036, META: 0.027, AVGO: 0.022, GOOGL: 0.031, TSLA: 0.018, BRKB: 0.015, JPM: 0.013, LLY: 0.011, V: 0.01, XOM: 0.008 },
     otherSectors: { Technology: 0.17, Financials: 0.16, Healthcare: 0.13, Industrials: 0.16, "Consumer Disc.": 0.1, "Consumer Staples": 0.07, Energy: 0.05, Utilities: 0.04, Communication: 0.04, Unclassified: 0.08 },
   },
+  QQQ: {
+    name: "Invesco QQQ Trust",
+    holdings: { NVDA: 0.095, AAPL: 0.08, MSFT: 0.075, AMZN: 0.05, AVGO: 0.045, META: 0.04, TSLA: 0.03, GOOGL: 0.03, GOOG: 0.025, NFLX: 0.02, COST: 0.02, PLTR: 0.015, AMD: 0.015 },
+    otherSectors: { Technology: 0.55, Communication: 0.18, "Consumer Disc.": 0.14, "Consumer Staples": 0.08, Healthcare: 0.05 },
+  },
   DIA: {
     name: "SPDR Dow Jones Industrial Average ETF",
     holdings: { GS: 0.05, MCD: 0.05, UNH: 0.05, HON: 0.045, CAT: 0.045, MSFT: 0.04, HD: 0.04, AMGN: 0.04, CVX: 0.035, JNJ: 0.035, V: 0.03, PG: 0.03, KO: 0.025, NKE: 0.02, BA: 0.02, WMT: 0.02, AAPL: 0.02, MRK: 0.02, AMZN: 0.015, NVDA: 0.015, JPM: 0.015, DIS: 0.015 },
