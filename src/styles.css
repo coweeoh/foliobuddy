@@ -5,27 +5,43 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system definition.
+ * Two themes, switched by the `dark` class on <html> (see theme.tsx).
  *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
+ * Light is the pastel consumer look: grey ground, white panels, forest-green data, near-black actions.
+ * Dark is the terminal look: near-black ground, panels one step lighter, a lime accent.
+ * Each holding keeps one hue (see --h1..--h6), pale with dark ink in light, bright on a deep tint in dark.
  *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ * The shadcn tokens (--background, --card, --primary, ...) are mapped onto these roles so the
+ * components in src/components/ui inherit the same look.
  */
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-4xl: 28px;
+
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-rule: var(--rule);
+  --color-control: var(--control);
+  --color-ink: var(--text);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-hover: var(--brand-hover);
+  --color-on-brand: var(--on-brand);
+  --color-negative: var(--negative);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-control-hover: var(--control-hover);
+  --color-positive: var(--positive);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -34,6 +50,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -59,48 +76,181 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --font-display: var(--font-display);
+
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
+  --font-display: var(--font-sans);
 }
 
 :root {
-  --radius: 0.5rem;
-  --font-display: "Fraunces", Georgia, serif;
-  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
-  --background: oklch(0.975 0.012 85);
-  --foreground: oklch(0.22 0.03 160);
-  --card: oklch(0.99 0.008 85);
-  --card-foreground: oklch(0.22 0.03 160);
-  --popover: oklch(0.99 0.008 85);
-  --popover-foreground: oklch(0.22 0.03 160);
-  --primary: oklch(0.38 0.08 160);
-  --primary-foreground: oklch(0.97 0.015 85);
-  --secondary: oklch(0.93 0.02 85);
-  --secondary-foreground: oklch(0.25 0.03 160);
-  --muted: oklch(0.94 0.015 85);
-  --muted-foreground: oklch(0.48 0.025 160);
-  --accent: oklch(0.72 0.15 55);
-  --accent-foreground: oklch(0.2 0.03 50);
-  --destructive: oklch(0.56 0.2 28);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.86 0.02 85);
-  --input: oklch(0.86 0.02 85);
-  --ring: oklch(0.38 0.08 160);
-  --chart-1: oklch(0.38 0.08 160);
-  --chart-2: oklch(0.72 0.15 55);
-  --chart-3: oklch(0.6 0.09 200);
-  --chart-4: oklch(0.55 0.13 25);
-  --chart-5: oklch(0.7 0.1 120);
-  --sidebar: oklch(0.975 0.012 85);
-  --sidebar-foreground: oklch(0.22 0.03 160);
-  --sidebar-primary: oklch(0.38 0.08 160);
-  --sidebar-primary-foreground: oklch(0.97 0.015 85);
-  --sidebar-accent: oklch(0.93 0.02 85);
-  --sidebar-accent-foreground: oklch(0.25 0.03 160);
-  --sidebar-border: oklch(0.86 0.02 85);
-  --sidebar-ring: oklch(0.38 0.08 160);
+  --font-sans: "Manrope", Inter, system-ui, sans-serif;
+  color-scheme: light;
+
+  --ground: #f3f5f7;
+  --surface: #ffffff;
+  --raised: #f6f8fa;
+  --border: #e6e6e6;
+  --rule: #f0f1f2;
+  --control: #d6d9dd;
+  --control-hover: #bfc4ca;
+  --text: #1b1d1f;
+
+  --brand: #1f7a4d;
+  --brand-hover: #17633e;
+  --brand-soft: #dcf3e4;
+  --brand-ink: #0b3d26;
+  --on-brand: #ffffff;
+  --positive: #2f7a45;
+  --negative: #c41c29;
+  --warning: #92400e;
+  --warning-soft: #fffbeb;
+  --warning-border: #fde68a;
+
+  /* Holding hues: mark at 3:1 on white, pale tint, dark ink of the same hue. */
+  --h1: #1f7a4d;
+  --h1-soft: #dcf3e4;
+  --h1-ink: #0b3d26;
+  --h2: #1d5fd6;
+  --h2-soft: #dcf1ff;
+  --h2-ink: #0a3a80;
+  --h3: #b45309;
+  --h3-soft: #fdecd8;
+  --h3-ink: #6b2f05;
+  --h4: #2a8798;
+  --h4-soft: #d9f2f5;
+  --h4-ink: #0f4650;
+  --h5: #c0365a;
+  --h5-soft: #fde4ea;
+  --h5-ink: #6e1530;
+  --h6: #5b6470;
+  --h6-soft: #e9ecef;
+  --h6-ink: #2a2f35;
+
+  /* The primary action is near-black in light; data keeps the brand green. */
+  --primary: var(--text);
+  --primary-foreground: #ffffff;
+  --primary-hover: #33373b;
+  --secondary: #e9ecef;
+  --secondary-hover: #dfe3e7;
+  --muted: #eef1f4;
+  --muted-foreground: #5c6064;
+  --accent: #eef1f4;
+  --popover: var(--surface);
+
+  --bar: var(--text);
+  --bar-muted: #b9bec4;
+  --flow-tail: #c9c9c0;
+  --flow-other: #a9aaa1;
+  --track: #e3e6e9;
+  --scroll: #c4c8cd;
+  --pill-neutral-bg: #eef1f4;
+  --pill-neutral-ink: #3a3d40;
+
+  /* Correlation cells: dark green ramping up from the ground, white text once strong. */
+  --heat-pos: #145a37;
+  --heat-neg: #8a3f07;
+  --heat-base: #f3f5f7;
+  --heat-lo: 0;
+  --heat-span: 45;
+  --heat-strong-start: 75;
+  --heat-strong-span: 25;
+  --heat-strong-ink: #ffffff;
+
+  --background: var(--ground);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover-foreground: var(--text);
+  --secondary-foreground: var(--text);
+  --accent-foreground: var(--text);
+  --destructive: var(--negative);
+  --destructive-foreground: #ffffff;
+  --input: var(--control);
+  --ring: var(--brand);
+  --chart-1: var(--h1);
+  --chart-2: var(--h2);
+  --chart-3: var(--h3);
+  --chart-4: var(--h4);
+  --chart-5: var(--h5);
+  --sidebar: var(--ground);
+  --sidebar-foreground: var(--text);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--secondary);
+  --sidebar-accent-foreground: var(--text);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--brand);
+}
+
+/* Terminal dark: the same roles, with lime carrying both the accent and the primary action. */
+html.dark {
+  color-scheme: dark;
+
+  --ground: #0a0b0c;
+  --surface: #121315;
+  --raised: #1a1c1f;
+  --border: #23262a;
+  --rule: #1c1e21;
+  --control: #34383d;
+  --control-hover: #4a4f55;
+  --text: #f1f2f3;
+
+  --brand: #c4f23d;
+  --brand-hover: #d5fa6e;
+  --brand-soft: #232b10;
+  --brand-ink: #d6f97a;
+  --on-brand: #0a0b0c;
+  --positive: #c4f23d;
+  --negative: #ff5b4e;
+  --warning: #f6b649;
+  --warning-soft: #2a2110;
+  --warning-border: #4a3918;
+
+  --h1: #c4f23d;
+  --h1-soft: #253010;
+  --h1-ink: #d9fb7f;
+  --h2: #5c9dff;
+  --h2-soft: #13233d;
+  --h2-ink: #a3c6ff;
+  --h3: #ff9f45;
+  --h3-soft: #36220f;
+  --h3-ink: #ffc58c;
+  --h4: #3ed2ca;
+  --h4-soft: #0e302e;
+  --h4-ink: #8ae8e2;
+  --h5: #ff6f9d;
+  --h5-soft: #3a1524;
+  --h5-ink: #ffa8c3;
+  --h6: #a3a9b0;
+  --h6-soft: #25282c;
+  --h6-ink: #d2d5d9;
+
+  --primary: var(--brand);
+  --primary-foreground: var(--on-brand);
+  --primary-hover: var(--brand-hover);
+  --secondary: #202226;
+  --secondary-hover: #2a2d31;
+  --muted: #1f2124;
+  --muted-foreground: #8d9298;
+  --accent: #23262a;
+  --popover: var(--raised);
+
+  --bar: var(--brand);
+  --bar-muted: #4a4f55;
+  --flow-tail: #3a3e43;
+  --flow-other: #5a5f66;
+  --track: #2a2d31;
+  --scroll: #34383d;
+  --pill-neutral-bg: var(--muted);
+  --pill-neutral-ink: #c9cdd2;
+
+  --heat-pos: var(--brand);
+  --heat-neg: var(--negative);
+  --heat-base: var(--raised);
+  --heat-lo: 8;
+  --heat-span: 24;
+  --heat-strong-start: 68;
+  --heat-strong-span: 32;
+  --heat-strong-ink: var(--on-brand);
 }
 
 @layer base {
@@ -108,15 +258,178 @@
     border-color: var(--color-border);
   }
 
-  body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-    font-family: var(--font-sans);
+  html {
+    -webkit-text-size-adjust: 100%;
+    scrollbar-color: var(--scroll) transparent;
   }
-  h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.02em; }
+
+  body {
+    background-color: var(--ground);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background: var(--brand-soft);
+    color: var(--brand-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  input,
+  select,
+  textarea {
+    caret-color: var(--brand);
+  }
+
+  a {
+    text-underline-offset: 3px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--scroll);
+    border-radius: 999px;
+    border: 3px solid var(--ground);
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
 }
 
 @utility num {
-  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Range input themed from the palette; the track fill is driven by --fill (0-100%). */
+@utility range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 24px;
+  background: transparent;
+  cursor: pointer;
+  &::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(
+      to right,
+      var(--mark, var(--text)) var(--fill, 0%),
+      var(--track) var(--fill, 0%)
+    );
+  }
+  &::-moz-range-track {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--track);
+  }
+  &::-moz-range-progress {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--mark, var(--text));
+  }
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    margin-top: -8px;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 2px solid var(--mark, var(--text));
+    transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  &::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 2px solid var(--mark, var(--text));
+  }
+  &:active::-webkit-slider-thumb {
+    transform: scale(1.15);
+  }
+  &:focus-visible {
+    outline: none;
+  }
+  &:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 4px var(--brand-soft);
+  }
+  &:focus-visible::-moz-range-thumb {
+    box-shadow: 0 0 0 4px var(--brand-soft);
+  }
+}
+
+/* In dark the thumb is the holding's own colour, ringed by the panel. */
+html.dark .range::-webkit-slider-thumb,
+html.dark .range::-moz-range-thumb {
+  background: var(--mark, var(--text));
+  border: 3px solid var(--surface);
+}
+
+/* View entrance: content is visible by default; motion only rises it into place. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@utility rise {
+  animation: rise 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+@utility grow {
+  transform-origin: left center;
+  animation: grow 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(120ms + var(--i, 0) * 30ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
 }
