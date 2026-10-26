@@ -88,7 +88,7 @@ export function ExposureView({ w, hueOf }: { w: Record<string, number>; hueOf: H
               title="Overlap"
               sub={
                 overlapped.length
-                  ? `${overlapped.length} ${overlapped.length === 1 ? "company reaches" : "companies reach"} you through more than one holding, so you're less spread out than your number of funds suggests.`
+                  ? `${overlapped.length} ${overlapped.length === 1 ? "company reaches" : "companies reach"} you through more than one holding.`
                   : held.length > 1
                     ? "None of your holdings share a named company."
                     : "Overlap appears once you hold two or more positions."
