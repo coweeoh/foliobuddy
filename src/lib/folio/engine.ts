@@ -1,6 +1,7 @@
 import { ETFS, SECURITIES, factorsFor, type Sector } from "./data";
 
 export type Position = { ticker: string; amount: number };
+export type Portfolio = { id: string; name: string; positions: Position[] };
 
 export const OTHER = "OTHER";
 
@@ -80,15 +81,27 @@ function hash(s: string) {
 }
 
 export const DAYS = 252;
+
+/** Lookback windows in trading days. Series run newest-first, so a window is a prefix. */
+export const PERIODS = [
+  { label: "3M", name: "3 months", days: 63 },
+  { label: "6M", name: "6 months", days: 126 },
+  { label: "1Y", name: "1 year", days: 252 },
+  { label: "3Y", name: "3 years", days: 756 },
+] as const;
+const HISTORY = Math.max(...PERIODS.map((p) => p.days));
+
 const factorSeries = (() => {
   const r = rng(42);
-  return Array.from({ length: DAYS }, () => [gaussian(r) * 0.01, gaussian(r) * 0.007, gaussian(r) * 0.005]);
+  return Array.from({ length: HISTORY }, () => [gaussian(r) * 0.01, gaussian(r) * 0.007, gaussian(r) * 0.005]);
 })();
 
-export function dailyReturns(ticker: string): number[] {
+export function dailyReturns(ticker: string, days = DAYS): number[] {
   const [m, g, v, idio] = factorsFor(ticker);
   const r = rng(hash(ticker));
-  return factorSeries.map(([fm, fg, fv]) => m * fm! + g * fg! + v * fv! + gaussian(r) * idio);
+  return factorSeries
+    .slice(0, Math.min(days, HISTORY))
+    .map(([fm, fg, fv]) => m * fm! + g * fg! + v * fv! + gaussian(r) * idio);
 }
 
 export function pearson(a: number[], b: number[]): number {
@@ -104,7 +117,7 @@ export function pearson(a: number[], b: number[]): number {
   return da && db ? num / Math.sqrt(da * db) : 0;
 }
 
-export function correlationMatrix(tickers: string[]) {
-  const series = tickers.map(dailyReturns);
+export function correlationMatrix(tickers: string[], days = DAYS) {
+  const series = tickers.map((t) => dailyReturns(t, days));
   return tickers.map((_, i) => tickers.map((_, j) => (i === j ? 1 : pearson(series[i]!, series[j]!))));
 }

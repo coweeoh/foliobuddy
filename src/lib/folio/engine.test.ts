@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { lookThrough, pearson, weights } from "./engine";
+import { correlationMatrix, dailyReturns, DAYS, lookThrough, pearson, weights } from "./engine";
+import { capEtfs } from "./plan";
 
 describe("FolioBuddy engine", () => {
   it("computes portfolio weights from amounts", () => {
@@ -17,6 +18,24 @@ describe("FolioBuddy engine", () => {
   it("sector weights sum to 100%", () => {
     const { sectors } = lookThrough({ SPY: 0.6, XLK: 0.4 });
     expect(sectors.reduce((s, x) => s + x.weight, 0)).toBeCloseTo(1, 6);
+  });
+
+  it("correlation periods use that many days and keep the 1-year default stable", () => {
+    expect(dailyReturns("SPY", 63)).toHaveLength(63);
+    expect(dailyReturns("SPY", 756)).toHaveLength(756);
+    expect(dailyReturns("SPY", 756).slice(0, DAYS)).toEqual(dailyReturns("SPY"));
+    expect(correlationMatrix(["SPY", "QQQ"], 63)[0]![1]).not.toBeCloseTo(
+      correlationMatrix(["SPY", "QQQ"])[0]![1]!,
+      6,
+    );
+  });
+
+  it("free plan analyses the first five ETFs and every stock", () => {
+    const tickers = ["SPY", "AAPL", "QQQ", "VTI", "XLK", "XLV", "SMH", "NVDA"];
+    const { included, excluded } = capEtfs(tickers.map((ticker) => ({ ticker, amount: 100 })), 5);
+    expect(included.map((p) => p.ticker)).toEqual(["SPY", "AAPL", "QQQ", "VTI", "XLK", "XLV", "NVDA"]);
+    expect(excluded).toEqual(["SMH"]);
+    expect(capEtfs(tickers.map((ticker) => ({ ticker, amount: 100 })), Infinity).excluded).toEqual([]);
   });
 
   it("pearson correlation of perfectly linear series is 1", () => {
