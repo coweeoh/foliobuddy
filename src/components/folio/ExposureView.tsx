@@ -1,9 +1,21 @@
 import { ChevronDown } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Switch } from "@/components/ui/switch";
 import { ETFS } from "@/lib/folio/data";
 import { lookThrough, type Exposure } from "@/lib/folio/engine";
 import { cn } from "@/lib/utils";
-import { Card, CardHeader, Chip, Notice, pct, PageTitle, TextButton, type HueOf } from "./shared";
+import { PremiumTag, usePlan } from "./plan";
+import {
+  Card,
+  CardHeader,
+  Chip,
+  Notice,
+  pct,
+  PageTitle,
+  SecondaryButton,
+  TextButton,
+  type HueOf,
+} from "./shared";
 
 const TOP = 12;
 
@@ -150,6 +162,8 @@ export function ExposureView({ w, hueOf }: { w: Record<string, number>; hueOf: H
             </ul>
           </Card>
 
+          <MonitorCard companies={companies} sectors={sectors} />
+
           {unknown.length > 0 && (
             <Notice>
               {unknown.join(", ")} {unknown.length === 1 ? "isn't" : "aren't"} in our data, so{" "}
@@ -160,6 +174,151 @@ export function ExposureView({ w, hueOf }: { w: Record<string, number>; hueOf: H
         </div>
       </div>
     </>
+  );
+}
+
+const MONITOR_KEY = "foliobuddy:monitor";
+type Monitor = { on: boolean; company: number; sector: number };
+const MONITOR_DEFAULT: Monitor = { on: true, company: 0.1, sector: 0.4 };
+
+function MonitorCard({
+  companies,
+  sectors,
+}: {
+  companies: Exposure[];
+  sectors: { sector: string; weight: number }[];
+}) {
+  const { isPremium, openPlans } = usePlan();
+  const [cfg, setCfg] = useState<Monitor>(MONITOR_DEFAULT);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem(MONITOR_KEY) ?? "null",
+      ) as Partial<Monitor> | null;
+      if (saved) setCfg({ ...MONITOR_DEFAULT, ...saved });
+    } catch {
+      // Keep the defaults.
+    }
+  }, []);
+  const update = (patch: Partial<Monitor>) => {
+    const next = { ...cfg, ...patch };
+    setCfg(next);
+    localStorage.setItem(MONITOR_KEY, JSON.stringify(next));
+  };
+
+  const flags = [
+    ...companies
+      .filter((c) => c.weight > cfg.company)
+      .map((c) => ({ name: c.name, weight: c.weight, limit: cfg.company })),
+    ...sectors
+      .filter((s) => s.sector !== "Unclassified" && s.weight > cfg.sector)
+      .map((s) => ({ name: `${s.sector} sector`, weight: s.weight, limit: cfg.sector })),
+  ];
+  const now = new Date();
+  const nextCheck = new Date(now.getFullYear(), now.getMonth() + 1, 1).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  const select =
+    "num h-9 rounded-[8px] border border-control bg-surface px-2 text-sm font-semibold text-ink outline-none focus:border-brand";
+
+  if (!isPremium) {
+    return (
+      <Card style={{ ["--i" as string]: 4 }}>
+        <CardHeader title="Exposure monitoring" aside={<PremiumTag />} />
+        <div className="px-6 pb-6">
+          <p className="text-[15px] text-muted-foreground">
+            A monthly check that flags when one company or sector grows past a limit you set.
+          </p>
+          {flags.length > 0 && (
+            <p className="mt-3 text-[15px]">
+              Today it would flag{" "}
+              <b className="font-semibold">
+                {flags[0]!.name} at <span className="num">{pct(flags[0]!.weight)}</span>
+              </b>
+              {flags.length > 1 ? ` and ${flags.length - 1} more` : ""}.
+            </p>
+          )}
+          <SecondaryButton
+            className="mt-4"
+            onClick={() =>
+              openPlans(
+                "Exposure monitoring is part of Premium: monthly checks against limits you set.",
+              )
+            }
+          >
+            See Premium
+          </SecondaryButton>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card style={{ ["--i" as string]: 4 }}>
+      <CardHeader
+        title="Exposure monitoring"
+        aside={
+          <Switch
+            checked={cfg.on}
+            onCheckedChange={(on) => update({ on })}
+            aria-label="Monthly exposure check"
+          />
+        }
+        sub={cfg.on ? `Monthly check on. Next check ${nextCheck}.` : "Monthly check off."}
+      />
+      <div className={cn("space-y-3 px-6 pb-5", !cfg.on && "opacity-50")}>
+        <label className="flex items-center justify-between gap-3 text-[15px]">
+          Any one company above
+          <select
+            className={select}
+            value={cfg.company}
+            disabled={!cfg.on}
+            onChange={(e) => update({ company: Number(e.target.value) })}
+          >
+            {[0.05, 0.1, 0.15, 0.2].map((v) => (
+              <option key={v} value={v}>
+                {pct(v, 0)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex items-center justify-between gap-3 text-[15px]">
+          Any one sector above
+          <select
+            className={select}
+            value={cfg.sector}
+            disabled={!cfg.on}
+            onChange={(e) => update({ sector: Number(e.target.value) })}
+          >
+            {[0.3, 0.4, 0.5, 0.6].map((v) => (
+              <option key={v} value={v}>
+                {pct(v, 0)}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {cfg.on && (
+        <ul className="border-t border-rule px-6 py-4">
+          {flags.length ? (
+            flags.map((f) => (
+              <li key={f.name} className="flex justify-between gap-3 py-1 text-[15px]">
+                <span>{f.name}</span>
+                <span className="num font-semibold text-warning">
+                  {pct(f.weight)} <span className="font-normal">over {pct(f.limit, 0)}</span>
+                </span>
+              </li>
+            ))
+          ) : (
+            <li className="text-[15px] text-muted-foreground">
+              Nothing is over your limits today.
+            </li>
+          )}
+        </ul>
+      )}
+    </Card>
   );
 }
 

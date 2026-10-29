@@ -145,15 +145,13 @@
   --pill-neutral-bg: #eef1f4;
   --pill-neutral-ink: #3a3d40;
 
-  /* Correlation cells: dark green ramping up from the ground, white text once strong. */
-  --heat-pos: #145a37;
-  --heat-neg: #8a3f07;
-  --heat-base: #f3f5f7;
-  --heat-lo: 0;
-  --heat-span: 45;
-  --heat-strong-start: 75;
-  --heat-strong-span: 25;
-  --heat-strong-ink: #ffffff;
+  /* Correlation bands: pale sage, mid green, deep forest; each ink keeps 4.5:1. */
+  --corr-low: #e3ece5;
+  --corr-low-ink: #1b3a28;
+  --corr-mid: #4f7a5d;
+  --corr-mid-ink: #ffffff;
+  --corr-high: #234a33;
+  --corr-high-ink: #ffffff;
 
   --background: var(--ground);
   --foreground: var(--text);
@@ -243,14 +241,12 @@ html.dark {
   --pill-neutral-bg: var(--muted);
   --pill-neutral-ink: #c9cdd2;
 
-  --heat-pos: var(--brand);
-  --heat-neg: var(--negative);
-  --heat-base: var(--raised);
-  --heat-lo: 8;
-  --heat-span: 24;
-  --heat-strong-start: 68;
-  --heat-strong-span: 32;
-  --heat-strong-ink: var(--on-brand);
+  --corr-low: #25282c;
+  --corr-low-ink: var(--text);
+  --corr-mid: #7c9a2c;
+  --corr-mid-ink: var(--on-brand);
+  --corr-high: var(--brand);
+  --corr-high-ink: var(--on-brand);
 }
 
 @layer base {

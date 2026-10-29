@@ -2,6 +2,7 @@ import { Activity, Layers, SlidersHorizontal, Wallet, type LucideIcon } from "lu
 import type { ReactNode } from "react";
 import { AS_OF } from "@/lib/folio/data";
 import { cn } from "@/lib/utils";
+import { PlanBadge } from "./plan";
 import { ThemeToggle } from "./theme";
 
 export const VIEWS = ["holdings", "look-through", "overlap", "what-if"] as const;
@@ -80,7 +81,7 @@ export function Shell({
           className="h-7 w-7 scale-[1.28] [clip-path:inset(11%_round_6px)]"
         />
         <span className="text-[17px] font-semibold">FolioBuddy</span>
-        <span className="ml-auto text-xs text-muted-foreground">Data as of {asOf}</span>
+        <PlanBadge className="ml-auto" />
         <ThemeToggle />
       </header>
 
@@ -90,6 +91,7 @@ export function Shell({
             <span className="text-lg font-semibold">FolioBuddy</span>
             <span className="flex items-center gap-2 text-sm text-muted-foreground">
               Holdings data as of {asOf}
+              <PlanBadge className="ml-2" />
               <ThemeToggle />
             </span>
           </div>

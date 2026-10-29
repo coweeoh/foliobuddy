@@ -2,6 +2,8 @@ import { Plus, RotateCcw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ETFS } from "@/lib/folio/data";
 import { lookThrough } from "@/lib/folio/engine";
+import { cn } from "@/lib/utils";
+import { usePlan } from "./plan";
 import {
   Card,
   CardHeader,
@@ -40,7 +42,30 @@ function compare(
 }
 
 export function WhatIfView({ w, hueOf }: { w: Record<string, number>; hueOf: HueOf }) {
+  const { isPremium, limits, simsLeft, spendSimulation, openPlans } = usePlan();
   const [sim, setSim] = useState<Record<string, number>>(() => toSliders(w));
+  // One comparison is spent on the first change after opening or resetting.
+  const [counted, setCounted] = useState(false);
+  const locked = !isPremium && !counted && simsLeft === 0;
+  const upsell = () =>
+    openPlans(
+      `Free includes ${limits.simulations} what-if comparisons a month. Premium makes them unlimited.`,
+    );
+  const edit = (next: Record<string, number>) => {
+    if (!counted) {
+      if (!spendSimulation()) return upsell();
+      setCounted(true);
+    }
+    setSim(next);
+  };
+  const tryEtf = (t: string) => {
+    const etfs = Object.keys(sim).filter((k) => ETFS[k]).length;
+    if (etfs >= limits.etfs)
+      return openPlans(
+        `Free analyses up to ${limits.etfs} ETFs per portfolio. Premium lets you try as many as you like.`,
+      );
+    edit({ ...sim, [t]: 10 });
+  };
   const simW = useMemo(() => {
     const total = Object.values(sim).reduce((s, v) => s + v, 0) || 1;
     return Object.fromEntries(Object.entries(sim).map(([k, v]) => [k, v / total]));
@@ -91,7 +116,10 @@ export function WhatIfView({ w, hueOf }: { w: Record<string, number>; hueOf: Hue
             title="Your mix"
             aside={
               <TextButton
-                onClick={() => setSim(toSliders(w))}
+                onClick={() => {
+                  setSim(toSliders(w));
+                  setCounted(false);
+                }}
                 disabled={!changed}
                 className="flex items-center gap-1.5 disabled:opacity-40"
               >
@@ -99,7 +127,33 @@ export function WhatIfView({ w, hueOf }: { w: Record<string, number>; hueOf: Hue
               </TextButton>
             }
           />
-          <div className="space-y-5 px-6 pb-5">
+          {!isPremium && (
+            <div
+              className={cn(
+                "mx-6 mb-5 flex items-center justify-between gap-3 rounded-[10px] px-4 py-3 text-sm",
+                locked
+                  ? "border border-[var(--warning-border)] bg-warning-soft text-warning"
+                  : "bg-raised text-muted-foreground",
+              )}
+            >
+              <span>
+                {locked ? (
+                  "You've used this month's free comparisons."
+                ) : (
+                  <>
+                    <b className="num font-semibold text-ink">
+                      {simsLeft} of {limits.simulations}
+                    </b>{" "}
+                    free comparisons left this month
+                  </>
+                )}
+              </span>
+              <TextButton onClick={upsell} className="shrink-0">
+                Go unlimited
+              </TextButton>
+            </div>
+          )}
+          <div className={cn("space-y-5 px-6 pb-5", locked && "opacity-50")}>
             {Object.entries(sim).map(([t, v]) => {
               const h = hueOf(t);
               const share = simW[t] ?? 0;
@@ -127,7 +181,8 @@ export function WhatIfView({ w, hueOf }: { w: Record<string, number>; hueOf: Hue
                     value={v}
                     aria-label={`Weight for ${t}`}
                     aria-valuetext={pct(share)}
-                    onChange={(e) => setSim({ ...sim, [t]: Number(e.target.value) })}
+                    disabled={locked}
+                    onChange={(e) => edit({ ...sim, [t]: Number(e.target.value) })}
                     className="range mt-2"
                     style={{ ["--fill" as string]: `${v}%`, ["--mark" as string]: h.mark }}
                   />
@@ -139,10 +194,10 @@ export function WhatIfView({ w, hueOf }: { w: Record<string, number>; hueOf: Hue
             <TickerPicker
               etfOnly
               exclude={Object.keys(sim)}
-              onPick={(t) => setSim({ ...sim, [t]: 10 })}
+              onPick={tryEtf}
               label="Try adding an ETF"
             >
-              <SecondaryButton className="w-full">
+              <SecondaryButton className="w-full" disabled={locked}>
                 <Plus aria-hidden className="h-4 w-4" /> Try adding an ETF
               </SecondaryButton>
             </TickerPicker>

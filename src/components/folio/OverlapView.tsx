@@ -1,5 +1,9 @@
-import { useMemo } from "react";
-import { correlationMatrix, DAYS } from "@/lib/folio/engine";
+import { Lock } from "lucide-react";
+import { useMemo, useState } from "react";
+import { correlationMatrix, PERIODS } from "@/lib/folio/engine";
+import { FREE_PERIOD_DAYS } from "@/lib/folio/plan";
+import { cn } from "@/lib/utils";
+import { usePlan } from "./plan";
 import { Card, CardHeader, PageTitle, TickerTile, type HueOf } from "./shared";
 
 function describe(r: number) {
@@ -16,20 +20,19 @@ const TONE = {
   good: { background: "var(--brand-soft)", color: "var(--brand-ink)" },
 };
 
-// The ramp's colours and steepness come from the theme (--heat-*), so both modes keep 4.5:1.
-const STRONG = 0.6;
-const cellBg = (r: number) => {
-  const a = Math.abs(r);
-  const amount =
-    a < STRONG
-      ? `calc((var(--heat-lo) + ${(a / STRONG).toFixed(3)} * var(--heat-span)) * 1%)`
-      : `calc((var(--heat-strong-start) + ${((a - STRONG) / (1 - STRONG)).toFixed(3)} * var(--heat-strong-span)) * 1%)`;
-  return `color-mix(in oklab, ${r >= 0 ? "var(--heat-pos)" : "var(--heat-neg)"} ${amount}, var(--heat-base))`;
-};
-const cellInk = (r: number) => (Math.abs(r) >= STRONG ? "var(--heat-strong-ink)" : "var(--text)");
+// Lowest band first, matching the legend order.
+const BANDS = [
+  { min: -Infinity, label: "lower correlation", bg: "var(--corr-low)", ink: "var(--corr-low-ink)" },
+  { min: 0.4, label: "moderate", bg: "var(--corr-mid)", ink: "var(--corr-mid-ink)" },
+  { min: 0.7, label: "moves together", bg: "var(--corr-high)", ink: "var(--corr-high-ink)" },
+];
+const bandOf = (r: number) => BANDS.filter((b) => r >= b.min).at(-1)!;
 
 export function OverlapView({ tickers, hueOf }: { tickers: string[]; hueOf: HueOf }) {
-  const m = useMemo(() => correlationMatrix(tickers), [tickers]);
+  const { limits, openPlans } = usePlan();
+  const [days, setDays] = useState(FREE_PERIOD_DAYS);
+  const period = limits.customPeriods ? days : FREE_PERIOD_DAYS;
+  const m = useMemo(() => correlationMatrix(tickers, period), [tickers, period]);
   const pairs = tickers
     .flatMap((a, i) => tickers.slice(i + 1).map((b, k) => ({ a, b, r: m[i]![i + 1 + k]! })))
     .sort((x, y) => y.r - x.r);
@@ -64,64 +67,100 @@ export function OverlapView({ tickers, hueOf }: { tickers: string[]; hueOf: HueO
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
           <Card style={{ ["--i" as string]: 1 }}>
             <CardHeader
-              title="Correlation"
-              sub="1.00 means two holdings move in lockstep; 0 means they're unrelated; below 0 means one tends to rise when the other falls."
+              title="Correlation matrix"
+              aside={
+                <div
+                  role="group"
+                  aria-label="Correlation period"
+                  className="inline-flex rounded-full bg-secondary p-1"
+                >
+                  {PERIODS.map((p) => {
+                    const locked = !limits.customPeriods && p.days !== FREE_PERIOD_DAYS;
+                    const on = p.days === period;
+                    return (
+                      <button
+                        key={p.label}
+                        aria-pressed={on}
+                        title={locked ? "Premium" : undefined}
+                        onClick={() =>
+                          locked
+                            ? openPlans(
+                                "Free shows one year of history. Premium lets you compare 3 months, 6 months, 1 year or 3 years.",
+                              )
+                            : setDays(p.days)
+                        }
+                        className={cn(
+                          "num inline-flex h-8 items-center gap-1 rounded-full px-3 text-[13px] font-semibold transition-colors",
+                          on
+                            ? "bg-surface text-ink shadow-sm"
+                            : "text-muted-foreground hover:text-ink",
+                        )}
+                      >
+                        {locked && <Lock aria-hidden className="h-3 w-3" />}
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              }
+              sub="1.00 means two holdings move in lockstep; 0 means they're unrelated. Darker squares add less diversification."
             />
             <div className="overflow-x-auto px-6 pb-4">
-              <table className="num border-separate border-spacing-1.5 text-sm">
+              <table className="num border-separate border-spacing-1.5 text-[15px]">
                 <thead>
                   <tr>
                     <th />
-                    {tickers.slice(0, -1).map((t) => (
-                      <th key={t} scope="col" className="px-1 pb-1 font-semibold">
+                    {tickers.map((t) => (
+                      <th
+                        key={t}
+                        scope="col"
+                        className="px-1 pb-1 text-base font-semibold text-muted-foreground"
+                      >
                         {t}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {tickers.slice(1).map((t, ri) => {
-                    const i = ri + 1;
-                    return (
-                      <tr key={t}>
-                        <th scope="row" className="pr-2 text-right font-semibold">
-                          {t}
-                        </th>
-                        {tickers.slice(0, -1).map((u, j) => {
-                          if (j >= i) return <td key={u} />;
-                          const r = m[i]![j]!;
-                          return (
-                            <td
-                              key={u}
-                              title={`${t} and ${u}: ${r.toFixed(2)}`}
-                              className="h-14 w-16 min-w-14 rounded-[8px] text-center text-[15px] font-semibold transition-transform duration-150 hover:scale-105"
-                              style={{
-                                background: cellBg(r),
-                                color: cellInk(r),
-                              }}
-                            >
-                              {r.toFixed(2)}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
+                  {tickers.map((t, i) => (
+                    <tr key={t}>
+                      <th
+                        scope="row"
+                        className="pr-3 text-right text-base font-semibold text-muted-foreground"
+                      >
+                        {t}
+                      </th>
+                      {tickers.map((u, j) => {
+                        if (j > i) return <td key={u} />;
+                        const r = m[i]![j]!;
+                        const band = bandOf(r);
+                        return (
+                          <td
+                            key={u}
+                            title={`${t} and ${u}: ${r.toFixed(2)} (${band.label})`}
+                            className="h-14 w-16 min-w-14 rounded-[8px] text-center font-bold transition-transform duration-150 hover:scale-105"
+                            style={{ background: band.bg, color: band.ink }}
+                          >
+                            {r.toFixed(2)}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-rule px-6 py-4 text-sm text-muted-foreground">
-              {[-0.6, 0, 0.5, 1].map((r) => (
-                <span key={r} className="flex items-center gap-2">
-                  <i
-                    aria-hidden
-                    className="h-3.5 w-5 rounded-[4px]"
-                    style={{ background: cellBg(r) }}
-                  />
-                  <span className="num">{r.toFixed(1)}</span>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-rule px-6 py-4 text-sm text-muted-foreground">
+              {BANDS.map((b) => (
+                <span key={b.label} className="flex items-center gap-2">
+                  <i aria-hidden className="h-4 w-4 rounded-[4px]" style={{ background: b.bg }} />
+                  {b.label}
                 </span>
               ))}
-              <span className="ml-auto">From {DAYS} days of simulated sample returns</span>
+              <span className="ml-auto">
+                {PERIODS.find((p) => p.days === period)?.name ?? `${period} days`} of simulated
+                sample returns
+              </span>
             </div>
           </Card>
 

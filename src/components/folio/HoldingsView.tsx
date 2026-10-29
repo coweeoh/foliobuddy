@@ -1,7 +1,9 @@
-import { ArrowRight, ChevronDown, Plus, X } from "lucide-react";
+import { ArrowRight, ChevronDown, Lock, Plus, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ETFS, SECURITIES } from "@/lib/folio/data";
-import { lookThrough, type Position } from "@/lib/folio/engine";
+import { lookThrough, type Portfolio, type Position } from "@/lib/folio/engine";
+import { cn } from "@/lib/utils";
+import { PremiumTag, usePlan } from "./plan";
 import {
   Card,
   CardHeader,
@@ -22,20 +24,36 @@ export function HoldingsView({
   positions,
   setPositions,
   w,
+  excluded,
   hueOf,
   onNext,
   onSample,
+  portfolios,
+  activeId,
+  onSwitch,
+  onCreate,
+  onDelete,
 }: {
   positions: Position[];
   setPositions: (p: Position[]) => void;
   w: Record<string, number>;
+  excluded: string[];
   hueOf: HueOf;
   onNext: () => void;
   onSample: () => void;
+  portfolios: Portfolio[];
+  activeId: string;
+  onSwitch: (id: string) => void;
+  onCreate: () => void;
+  onDelete: (id: string) => void;
 }) {
+  const { isPremium, limits, openPlans } = usePlan();
   const [focusRow, setFocusRow] = useState<number | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
-  const total = positions.reduce((s, p) => s + (p.ticker && p.amount > 0 ? p.amount : 0), 0);
+  const total = positions.reduce(
+    (s, p) => s + (p.ticker && p.amount > 0 && !excluded.includes(p.ticker) ? p.amount : 0),
+    0,
+  );
   const held = Object.keys(w);
   const { companies, sectors } = useMemo(() => lookThrough(w), [w]);
   const namedSectors = sectors.filter(
@@ -63,6 +81,51 @@ export function HoldingsView({
         title="Your holdings"
         sub="Add the ETFs and stocks you own with how much is in each. We look inside every fund to show what you actually own."
       />
+
+      <div
+        className="rise mb-6 flex flex-wrap items-center gap-2"
+        aria-label="Portfolios"
+        style={{ ["--i" as string]: 1 }}
+      >
+        {portfolios.map((p, i) => {
+          const locked = i >= limits.portfolios;
+          const current = p.id === activeId;
+          return (
+            <button
+              key={p.id}
+              aria-pressed={current}
+              onClick={() =>
+                locked
+                  ? openPlans("Free includes one portfolio. Premium keeps as many as you like.")
+                  : onSwitch(p.id)
+              }
+              className={cn(
+                "inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition-colors",
+                current
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-ink hover:bg-secondary-hover",
+                locked && "text-muted-foreground",
+              )}
+            >
+              {locked && <Lock aria-hidden className="h-3.5 w-3.5" />}
+              {p.name}
+            </button>
+          );
+        })}
+        <button
+          onClick={() =>
+            portfolios.length < limits.portfolios
+              ? onCreate()
+              : openPlans(
+                  "Free includes one portfolio. Premium lets you analyse several, like a retirement account and a trading account.",
+                )
+          }
+          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-dashed border-control px-4 text-sm font-semibold text-muted-foreground transition-colors hover:border-control-hover hover:text-ink"
+        >
+          <Plus aria-hidden className="h-4 w-4" /> New portfolio
+          {!isPremium && <PremiumTag />}
+        </button>
+      </div>
 
       <div className="grid gap-6">
         <Card className="p-6" style={{ ["--i" as string]: 1 }}>
@@ -156,6 +219,25 @@ export function HoldingsView({
             </div>
           ) : (
             <>
+              {excluded.length > 0 && (
+                <div className="mx-6 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-[var(--warning-border)] bg-warning-soft px-4 py-3 text-sm text-warning">
+                  <p className="min-w-0 flex-1">
+                    Free analyses up to {limits.etfs} ETFs per portfolio, so{" "}
+                    <b className="font-semibold">{excluded.join(", ")}</b>{" "}
+                    {excluded.length === 1 ? "isn't" : "aren't"} in your results yet.
+                  </p>
+                  <SecondaryButton
+                    className="h-9 shrink-0"
+                    onClick={() =>
+                      openPlans(
+                        `Free analyses up to ${limits.etfs} ETFs per portfolio. Premium includes every fund you hold.`,
+                      )
+                    }
+                  >
+                    See Premium
+                  </SecondaryButton>
+                </div>
+              )}
               <div className="hidden grid-cols-[minmax(0,1fr)_10rem_5rem_2.5rem] gap-4 px-6 pb-2 text-xs font-medium text-muted-foreground sm:grid">
                 <span>Holding</span>
                 <span className="text-right">Amount</span>
@@ -169,6 +251,7 @@ export function HoldingsView({
                     index={i}
                     p={p}
                     share={w[p.ticker]}
+                    capped={excluded.includes(p.ticker)}
                     hueOf={hueOf}
                     onTicker={(ticker) => update(i, { ticker })}
                     onAmount={(amount) => update(i, { amount })}
@@ -180,9 +263,12 @@ export function HoldingsView({
                 <span className="text-sm text-muted-foreground">
                   Changes save on this device automatically.
                 </span>
-                <TextButton onClick={() => setPositions([])} className="shrink-0">
-                  Clear all
-                </TextButton>
+                <span className="flex shrink-0 gap-4">
+                  {isPremium && portfolios.length > 1 && (
+                    <TextButton onClick={() => onDelete(activeId)}>Delete portfolio</TextButton>
+                  )}
+                  <TextButton onClick={() => setPositions([])}>Clear all</TextButton>
+                </span>
               </div>
             </>
           )}
@@ -196,6 +282,7 @@ function Row({
   index,
   p,
   share,
+  capped,
   hueOf,
   onTicker,
   onAmount,
@@ -204,6 +291,7 @@ function Row({
   index: number;
   p: Position;
   share: number | undefined;
+  capped: boolean;
   hueOf: HueOf;
   onTicker: (t: string) => void;
   onAmount: (n: number) => void;
@@ -242,6 +330,14 @@ function Row({
                 className="mt-1"
               >
                 Not in our data · counted as a single stock
+              </Chip>
+            )}
+            {capped && (
+              <Chip
+                h={{ mark: "", soft: "var(--warning-soft)", ink: "var(--warning)" }}
+                className="mt-1"
+              >
+                Over the Free ETF limit · not analysed
               </Chip>
             )}
           </span>
