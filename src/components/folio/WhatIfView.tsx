@@ -1,7 +1,8 @@
 import { Play, Plus, RotateCcw } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ETFS } from "@/lib/folio/data";
 import { lookThrough } from "@/lib/folio/engine";
+import { balancePercents, setExactPercent, toPercents } from "@/lib/folio/mix";
 import { cn } from "@/lib/utils";
 import { usePlan } from "./plan";
 import {
@@ -18,9 +19,6 @@ import {
   type HueOf,
 } from "./shared";
 import { TickerPicker } from "./TickerPicker";
-
-const toSliders = (w: Record<string, number>) =>
-  Object.fromEntries(Object.entries(w).map(([k, v]) => [k, Math.round(v * 100)]));
 
 type Row = { key: string; label: string; now: number; next: number };
 
@@ -45,11 +43,23 @@ function compare(
 export function WhatIfView({ w, hueOf }: { w: Record<string, number>; hueOf: HueOf }) {
   const { isPremium, limits, simsLeft, spendSimulation, openPlans } = usePlan();
   // Sliders edit a draft. Premium recalculates live; Free spends a comparison per Compare press.
-  const [sim, setSim] = useState<Record<string, number>>(() => toSliders(w));
-  const [ran, setRan] = useState<Record<string, number>>(() => toSliders(w));
-  const shown = isPremium ? sim : ran;
-  const pending = !isPremium && JSON.stringify(sim) !== JSON.stringify(ran);
-  const locked = !isPremium && simsLeft === 0;
+  const [sim, setSim] = useState<Record<string, number>>(() => toPercents(w));
+  const [ran, setRan] = useState<Record<string, number>>(() => toPercents(w));
+  const [manual, setManual] = useState(false);
+  const total = Object.values(sim).reduce((s, v) => s + v, 0);
+  const balanced = total === 100;
+  const comparisonsUsedUp = !isPremium && simsLeft === 0;
+  const pending = !isPremium && balanced && JSON.stringify(sim) !== JSON.stringify(ran);
+  const shown = isPremium && balanced ? sim : ran;
+  // Premium updates as soon as the percents add up. Free waits for Compare.
+  useEffect(() => {
+    if (isPremium && balanced) setRan(sim);
+  }, [isPremium, balanced, sim]);
+  const edit = (ticker: string, next: number) => {
+    if (!Number.isFinite(next)) return;
+    const value = Math.min(100, Math.max(0, Math.round(next)));
+    setSim(manual ? { ...sim, [ticker]: value } : setExactPercent(sim, ticker, value));
+  };
   const upsell = () =>
     openPlans(
       `Free includes ${limits.simulations} what-if comparisons a month. Premium makes them unlimited.`,
@@ -64,19 +74,18 @@ export function WhatIfView({ w, hueOf }: { w: Record<string, number>; hueOf: Hue
       return openPlans(
         `Free analyses up to ${limits.etfs} ETFs per portfolio. Premium lets you try as many as you like.`,
       );
-    setSim({ ...sim, [t]: 10 });
+    setSim(manual ? { ...sim, [t]: 0 } : setExactPercent({ ...sim, [t]: 0 }, t, 10));
   };
   const toShares = (x: Record<string, number>) => {
     const total = Object.values(x).reduce((s, v) => s + v, 0) || 1;
     return Object.fromEntries(Object.entries(x).map(([k, v]) => [k, v / total]));
   };
-  const simW = useMemo(() => toShares(sim), [sim]);
   const shownW = useMemo(() => toShares(shown), [shown]);
   const before = useMemo(() => lookThrough(w), [w]);
   const after = useMemo(() => lookThrough(shownW), [shownW]);
   const changed =
-    JSON.stringify(sim) !== JSON.stringify(toSliders(w)) ||
-    JSON.stringify(ran) !== JSON.stringify(toSliders(w));
+    JSON.stringify(sim) !== JSON.stringify(toPercents(w)) ||
+    JSON.stringify(ran) !== JSON.stringify(toPercents(w));
 
   const top10 = (x: typeof before) => x.companies.slice(0, 10).reduce((s, c) => s + c.weight, 0);
   const sectorOf = (x: typeof before, name: string) =>
@@ -121,8 +130,8 @@ export function WhatIfView({ w, hueOf }: { w: Record<string, number>; hueOf: Hue
             aside={
               <TextButton
                 onClick={() => {
-                  setSim(toSliders(w));
-                  setRan(toSliders(w));
+                  setSim(toPercents(w));
+                  setRan(toPercents(w));
                 }}
                 disabled={!changed}
                 className="flex items-center gap-1.5 disabled:opacity-40"
@@ -135,13 +144,13 @@ export function WhatIfView({ w, hueOf }: { w: Record<string, number>; hueOf: Hue
             <div
               className={cn(
                 "mx-6 mb-5 flex items-center justify-between gap-3 rounded-[10px] px-4 py-3 text-sm",
-                locked
+                comparisonsUsedUp
                   ? "border border-[var(--warning-border)] bg-warning-soft text-warning"
                   : "bg-raised text-muted-foreground",
               )}
             >
               <span>
-                {locked ? (
+                {comparisonsUsedUp ? (
                   "You've used this month's free comparisons."
                 ) : (
                   <>
@@ -157,25 +166,32 @@ export function WhatIfView({ w, hueOf }: { w: Record<string, number>; hueOf: Hue
               </TextButton>
             </div>
           )}
-          <div className={cn("space-y-5 px-6 pb-5", locked && "opacity-50")}>
+          <div className={cn("space-y-5 px-6 pb-2", comparisonsUsedUp && "opacity-50")}>
             {Object.entries(sim).map(([t, v]) => {
               const h = hueOf(t);
-              const share = simW[t] ?? 0;
               return (
-                <label key={t} className="block">
+                <div key={t}>
                   <span className="flex items-center gap-3">
                     <TickerTile ticker={t} h={h} size={32} />
                     <span className="min-w-0 flex-1">
                       <span className="block text-[15px] font-semibold">{t}</span>
                       <span className="block truncate text-[13px] text-muted-foreground">
                         {nameOf(t) ?? "Single stock"}
+                        <span className="num"> · now {pct(w[t] ?? 0)}</span>
                       </span>
                     </span>
-                    <span className="num text-right">
-                      <span className="block text-base font-semibold">{pct(share)}</span>
-                      <span className="block text-[13px] text-muted-foreground">
-                        now {pct(w[t] ?? 0)}
-                      </span>
+                    <span className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={v}
+                        aria-label={`Percent for ${t}`}
+                        disabled={comparisonsUsedUp}
+                        onChange={(e) => edit(t, Number(e.target.value))}
+                        className="num h-8 w-12 rounded-[8px] border border-control bg-surface text-center text-sm font-semibold outline-none focus:border-brand disabled:opacity-70"
+                      />
+                      <span className="text-sm text-muted-foreground">%</span>
                     </span>
                   </span>
                   <input
@@ -184,25 +200,50 @@ export function WhatIfView({ w, hueOf }: { w: Record<string, number>; hueOf: Hue
                     max={100}
                     value={v}
                     aria-label={`Weight for ${t}`}
-                    aria-valuetext={pct(share)}
-                    disabled={locked}
-                    onChange={(e) => setSim({ ...sim, [t]: Number(e.target.value) })}
+                    aria-valuetext={`${v}%`}
+                    disabled={comparisonsUsedUp}
+                    onChange={(e) => edit(t, Number(e.target.value))}
                     className="range mt-2"
                     style={{ ["--fill" as string]: `${v}%`, ["--mark" as string]: h.mark }}
                   />
-                </label>
+                </div>
               );
             })}
+          </div>
+          <div className="flex items-start justify-between gap-3 px-6 pb-5">
+            <p
+              className={cn(
+                "num text-[13px]",
+                manual && !balanced ? "font-semibold text-warning" : "text-muted-foreground",
+              )}
+            >
+              {manual
+                ? `Total ${total}%. ${balanced ? "Each row stays where you set it." : "Change another row until this is 100%."}`
+                : "Moving one row updates the others so the total stays 100%."}
+            </p>
+            <TextButton
+              onClick={() => {
+                if (manual) {
+                  setSim(balancePercents(sim));
+                  setManual(false);
+                } else {
+                  setManual(true);
+                }
+              }}
+              className="shrink-0 text-right"
+            >
+              {manual ? "Balance automatically" : "Set each percent"}
+            </TextButton>
           </div>
           <div className="border-t border-rule px-6 py-4">
             {!isPremium && (
               <PrimaryButton
                 className="mb-3 w-full"
                 disabled={!pending}
-                onClick={locked ? upsell : runComparison}
+                onClick={comparisonsUsedUp ? upsell : runComparison}
               >
                 <Play aria-hidden className="h-4 w-4" />
-                {locked ? "No comparisons left" : "Compare this mix"}
+                {comparisonsUsedUp ? "No comparisons left" : "Compare this mix"}
               </PrimaryButton>
             )}
             <TickerPicker
@@ -211,7 +252,7 @@ export function WhatIfView({ w, hueOf }: { w: Record<string, number>; hueOf: Hue
               onPick={tryEtf}
               label="Try adding an ETF"
             >
-              <SecondaryButton className="w-full" disabled={locked}>
+              <SecondaryButton className="w-full" disabled={comparisonsUsedUp}>
                 <Plus aria-hidden className="h-4 w-4" /> Try adding an ETF
               </SecondaryButton>
             </TickerPicker>
@@ -221,12 +262,17 @@ export function WhatIfView({ w, hueOf }: { w: Record<string, number>; hueOf: Hue
           </div>
         </Card>
 
-        <div className={cn("grid gap-6", pending && "[&>section]:opacity-60")}>
+        <div className={cn("grid gap-6", (pending || !balanced) && "[&>section]:opacity-60")}>
+          {!balanced && (
+            <p className="rise rounded-[10px] bg-raised px-4 py-3 text-sm text-muted-foreground">
+              These results stay on the last mix that added up to 100%.
+            </p>
+          )}
           {pending && (
             <p className="rise rounded-[10px] bg-raised px-4 py-3 text-sm text-muted-foreground">
               These results show your last comparison. Press{" "}
-              <b className="font-semibold text-ink">Compare this mix</b> to update them, or go
-              Premium to see changes as you drag.
+              <b className="font-semibold text-ink">Compare this mix</b> to update them. Premium
+              updates on its own once the total is 100%.
             </p>
           )}
           <Card style={{ ["--i" as string]: 2 }}>
