@@ -1,4 +1,4 @@
-import { Plus, RotateCcw } from "lucide-react";
+import { Play, Plus, RotateCcw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ETFS } from "@/lib/folio/data";
 import { lookThrough } from "@/lib/folio/engine";
@@ -10,6 +10,7 @@ import {
   nameOf,
   PageTitle,
   pct,
+  PrimaryButton,
   pts,
   SecondaryButton,
   TextButton,
@@ -43,20 +44,19 @@ function compare(
 
 export function WhatIfView({ w, hueOf }: { w: Record<string, number>; hueOf: HueOf }) {
   const { isPremium, limits, simsLeft, spendSimulation, openPlans } = usePlan();
+  // Sliders edit a draft. Premium recalculates live; Free spends a comparison per Compare press.
   const [sim, setSim] = useState<Record<string, number>>(() => toSliders(w));
-  // One comparison is spent on the first change after opening or resetting.
-  const [counted, setCounted] = useState(false);
-  const locked = !isPremium && !counted && simsLeft === 0;
+  const [ran, setRan] = useState<Record<string, number>>(() => toSliders(w));
+  const shown = isPremium ? sim : ran;
+  const pending = !isPremium && JSON.stringify(sim) !== JSON.stringify(ran);
+  const locked = !isPremium && simsLeft === 0;
   const upsell = () =>
     openPlans(
       `Free includes ${limits.simulations} what-if comparisons a month. Premium makes them unlimited.`,
     );
-  const edit = (next: Record<string, number>) => {
-    if (!counted) {
-      if (!spendSimulation()) return upsell();
-      setCounted(true);
-    }
-    setSim(next);
+  const runComparison = () => {
+    if (!spendSimulation()) return upsell();
+    setRan(sim);
   };
   const tryEtf = (t: string) => {
     const etfs = Object.keys(sim).filter((k) => ETFS[k]).length;
@@ -64,15 +64,19 @@ export function WhatIfView({ w, hueOf }: { w: Record<string, number>; hueOf: Hue
       return openPlans(
         `Free analyses up to ${limits.etfs} ETFs per portfolio. Premium lets you try as many as you like.`,
       );
-    edit({ ...sim, [t]: 10 });
+    setSim({ ...sim, [t]: 10 });
   };
-  const simW = useMemo(() => {
-    const total = Object.values(sim).reduce((s, v) => s + v, 0) || 1;
-    return Object.fromEntries(Object.entries(sim).map(([k, v]) => [k, v / total]));
-  }, [sim]);
+  const toShares = (x: Record<string, number>) => {
+    const total = Object.values(x).reduce((s, v) => s + v, 0) || 1;
+    return Object.fromEntries(Object.entries(x).map(([k, v]) => [k, v / total]));
+  };
+  const simW = useMemo(() => toShares(sim), [sim]);
+  const shownW = useMemo(() => toShares(shown), [shown]);
   const before = useMemo(() => lookThrough(w), [w]);
-  const after = useMemo(() => lookThrough(simW), [simW]);
-  const changed = JSON.stringify(sim) !== JSON.stringify(toSliders(w));
+  const after = useMemo(() => lookThrough(shownW), [shownW]);
+  const changed =
+    JSON.stringify(sim) !== JSON.stringify(toSliders(w)) ||
+    JSON.stringify(ran) !== JSON.stringify(toSliders(w));
 
   const top10 = (x: typeof before) => x.companies.slice(0, 10).reduce((s, c) => s + c.weight, 0);
   const sectorOf = (x: typeof before, name: string) =>
@@ -118,7 +122,7 @@ export function WhatIfView({ w, hueOf }: { w: Record<string, number>; hueOf: Hue
               <TextButton
                 onClick={() => {
                   setSim(toSliders(w));
-                  setCounted(false);
+                  setRan(toSliders(w));
                 }}
                 disabled={!changed}
                 className="flex items-center gap-1.5 disabled:opacity-40"
@@ -182,7 +186,7 @@ export function WhatIfView({ w, hueOf }: { w: Record<string, number>; hueOf: Hue
                     aria-label={`Weight for ${t}`}
                     aria-valuetext={pct(share)}
                     disabled={locked}
-                    onChange={(e) => edit({ ...sim, [t]: Number(e.target.value) })}
+                    onChange={(e) => setSim({ ...sim, [t]: Number(e.target.value) })}
                     className="range mt-2"
                     style={{ ["--fill" as string]: `${v}%`, ["--mark" as string]: h.mark }}
                   />
@@ -191,6 +195,16 @@ export function WhatIfView({ w, hueOf }: { w: Record<string, number>; hueOf: Hue
             })}
           </div>
           <div className="border-t border-rule px-6 py-4">
+            {!isPremium && (
+              <PrimaryButton
+                className="mb-3 w-full"
+                disabled={!pending}
+                onClick={locked ? upsell : runComparison}
+              >
+                <Play aria-hidden className="h-4 w-4" />
+                {locked ? "No comparisons left" : "Compare this mix"}
+              </PrimaryButton>
+            )}
             <TickerPicker
               etfOnly
               exclude={Object.keys(sim)}
@@ -207,7 +221,14 @@ export function WhatIfView({ w, hueOf }: { w: Record<string, number>; hueOf: Hue
           </div>
         </Card>
 
-        <div className="grid gap-6">
+        <div className={cn("grid gap-6", pending && "[&>section]:opacity-60")}>
+          {pending && (
+            <p className="rise rounded-[10px] bg-raised px-4 py-3 text-sm text-muted-foreground">
+              These results show your last comparison. Press{" "}
+              <b className="font-semibold text-ink">Compare this mix</b> to update them, or go
+              Premium to see changes as you drag.
+            </p>
+          )}
           <Card style={{ ["--i" as string]: 2 }}>
             <dl className="grid divide-y divide-rule sm:grid-cols-3 sm:divide-x sm:divide-y-0">
               {summary.map((s) => (
