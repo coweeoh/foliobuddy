@@ -21,10 +21,10 @@ describe("FolioBuddy engine", () => {
   });
 
   it("correlation periods use that many days and keep the 1-year default stable", () => {
-    expect(dailyReturns("SPY", 63)).toHaveLength(63);
+    expect(dailyReturns("SPY", 126)).toHaveLength(126);
     expect(dailyReturns("SPY", 756)).toHaveLength(756);
     expect(dailyReturns("SPY", 756).slice(0, DAYS)).toEqual(dailyReturns("SPY"));
-    expect(correlationMatrix(["SPY", "QQQ"], 63)[0]![1]).not.toBeCloseTo(
+    expect(correlationMatrix(["SPY", "QQQ"], 126)[0]![1]).not.toBeCloseTo(
       correlationMatrix(["SPY", "QQQ"])[0]![1]!,
       6,
     );

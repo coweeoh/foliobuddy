@@ -84,7 +84,6 @@ export const DAYS = 252;
 
 /** Lookback windows in trading days. Series run newest-first, so a window is a prefix. */
 export const PERIODS = [
-  { label: "3M", name: "3 months", days: 63 },
   { label: "6M", name: "6 months", days: 126 },
   { label: "1Y", name: "1 year", days: 252 },
   { label: "3Y", name: "3 years", days: 756 },
