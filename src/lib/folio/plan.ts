@@ -31,7 +31,7 @@ export const FEATURES: { label: string; free: string; premium: string }[] = [
   { label: "Portfolios", free: "1", premium: "Unlimited" },
   { label: "ETFs per portfolio", free: "Up to 5", premium: "Unlimited" },
   { label: "Company and sector look-through", free: "Included", premium: "Included" },
-  { label: "Correlation period", free: "1 year", premium: "3M, 6M, 1Y or 3Y" },
+  { label: "Correlation period", free: "1 year", premium: "6M, 1Y or 3Y" },
   { label: "What-if comparisons", free: "3 a month", premium: "Unlimited" },
   { label: "Exposure monitoring", free: "—", premium: "Monthly check and alerts" },
 ];

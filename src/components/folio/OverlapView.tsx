@@ -85,7 +85,7 @@ export function OverlapView({ tickers, hueOf }: { tickers: string[]; hueOf: HueO
                         onClick={() =>
                           locked
                             ? openPlans(
-                                "Free shows one year of history. Premium lets you compare 3 months, 6 months, 1 year or 3 years.",
+                                "Free shows one year of history. Premium lets you compare 6 months, 1 year or 3 years.",
                               )
                             : setDays(p.days)
                         }

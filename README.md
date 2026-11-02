@@ -206,9 +206,6 @@ To be clear about its role:
   your portfolio. It does not tell you what to buy or sell.
 - **It does not trade.** It never connects to a broker and cannot move your
   money.
-- **It does not store your data.** Everything you type stays in your own
-  browser. Nothing is sent to a server or saved to an account, and refreshing
-  the page starts over.
 - **It does not predict the future.** Correlation describes past behaviour
   only.
 
@@ -262,7 +259,6 @@ single holding with an "Unclassified" sector.
 - Data is a **fixed snapshot** and does not update with the market.
 - Correlations use **simulated**, not real, price history.
 - Coverage is limited to **US-listed** ETFs and stocks in the sample dataset.
-- Your portfolio is **not saved** between visits.
 
 ---
 
@@ -271,7 +267,6 @@ single holding with an "Unclassified" sector.
 - Connect to live market data for up-to-date fund holdings and prices.
 - Use real historical prices for the correlation analysis.
 - Support more funds, including international and bond ETFs.
-- Let users save portfolios or import them from a brokerage statement.
 - Add simple, plain-language tips, such as "You hold three funds that are 90%
   similar".
 
@@ -281,9 +276,6 @@ single holding with an "Unclassified" sector.
 
 **Do I need to create an account?**
 No. Open the website and start typing.
-
-**Is my information safe?**
-Yes. Nothing you enter leaves your browser, and nothing is stored.
 
 **Why does a company show up with several colours in its bar?**
 Because you own it through more than one investment. Each colour represents one
@@ -335,8 +327,6 @@ or `http://localhost:5173`) in your browser.
 | `src/lib/folio/data.ts` | Sample dataset of funds, stocks and sectors |
 | `src/lib/folio/engine.ts` | Calculations for weights, look-through and correlation |
 | `src/lib/folio/engine.test.ts` | Tests for the calculations |
-
-This project was originally scaffolded with [Lovable](https://lovable.dev).
 
 ---
 

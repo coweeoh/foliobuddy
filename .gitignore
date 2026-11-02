@@ -30,6 +30,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# design skill working files (screenshots, direction sheets)
-.taste-skill/
